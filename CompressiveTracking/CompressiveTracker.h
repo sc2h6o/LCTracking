@@ -41,13 +41,13 @@ private:
 	int rOuterPositive;
 	int sampleNumPos;
 	int sampleNumNeg;
+	int sampleNumNegInit;
 	int sampleNumUncertain;
 	float ratioUncertain;
 	vector<Rect> samplePositiveBox;
 	vector<Rect> sampleNegativeBox;
 	int rSearchWindowLg;
 	int rSearchWindowSm;
-	int numSearchLg;
 	float probSearchLg;
 	float scaleMin;
 	float scaleMax;
@@ -96,7 +96,7 @@ private:
 	void HaarDistribution();
 	void getUncertainSample(Sample& sample);
 	void UpdateUncertain(Mat _image, Rect& splitBox);
-	void sampleRect(Mat& _image, Rect& _objectBox, float _rOuter, float _rInner, int _maxSampleNum, bool checkBG, vector<Rect>& _sampleBox);
+	void sampleRect(Mat& _image, Rect& _objectBox, Rect bound, float _rOuter, float _rInner, int _maxSampleNum, bool checkBG, vector<Rect>& _sampleBox);
 	void sampleRect(Mat& _image, Rect& _objectBox, float _srw, vector<Rect>& _sampleBox);
 	void sampleNeg(Mat& _image, Rect& _objectBox, int margin_width_out, int margin_height_out,
 		int margin_width_in, int margin_height_in, int _maxSampleNum, int width, int height, vector<Rect>& _sampleBox);
@@ -109,9 +109,10 @@ private:
 	void evalORF(Mat& _splitFeatureValue, vector<float>& confidence, double &t);
 	void backProj(Mat& _image_rgb, Rect boundIn, Rect boundOut, Mat& backProj);
 	float checkBackProj(const Rect box, const Mat& backProj1, const Mat& backProj2);
-	void siftSample(int splitIndex, Mat& samplePositiveFeatureValuevector, vector<Rect>& samplePositiveBox, vector<Rect>& sampleNegativeBox);
+	void siftSample(int splitIndex, Mat& sampleFeatureValue, vector<Rect>& sampleBoxes);
 	void checkConfid(Mat& _splitFeatureValue);
-
+	void testProb(Mat& _frame, Rect& _objectBox, Mat& imageIntegral);
+	Rect meanShift(vector<float> confidence, vector<Rect>detectBox);
 public:
 	void processFrame(Mat& _frame, Mat& _image_rgb, Rect& _objectBox);
 	void init(Mat& _frame, Mat& _image_rgb, Rect& _objectBox);

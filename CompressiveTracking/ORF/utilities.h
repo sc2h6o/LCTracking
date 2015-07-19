@@ -73,7 +73,7 @@ inline int argmax(const vector<double> &inVect) {
 }
 
 inline int argmax(const vector<float> &inVect) {
-	double maxValue = inVect[0];
+	float maxValue = inVect[0];
 	int maxIndex = 0;
 	for (int i = 0; i < inVect.size(); i++) {
 		if (inVect[i] > maxValue){
@@ -83,6 +83,27 @@ inline int argmax(const vector<float> &inVect) {
 	}
 
 	return maxIndex;
+}
+
+inline double avrg(const vector<float> &inVect) {
+	if (inVect.size() == 0) return 0;
+	float result = 0;
+	for (int i = 0; i < inVect.size(); i++) {
+		result += inVect[i];
+	}
+	return result / inVect.size();
+}
+
+inline double softmax(const vector<float> &inVect) {
+	if (inVect.size() == 0) return 0;
+	float alpha = 3;
+	float numerator = DBL_MIN;
+	float dominator = DBL_MIN;
+	for (int i = 0; i < inVect.size(); i++) {
+		numerator += exp(alpha * abs(inVect[i]-0.5)) * inVect[i];
+		dominator += exp(alpha * abs(inVect[i]-0.5));
+	}
+	return numerator / dominator;
 }
 
 inline double sum(const vector<double> &inVect) {

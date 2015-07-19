@@ -25,6 +25,7 @@ class Hyperparameters
 	int MatureDepth;	// the depth criteria to judge whether a gowing tree could substitute
     int useSoftVoting;
     int numEpochs;
+	float lamda;
 
     // Data
     //string trainData;

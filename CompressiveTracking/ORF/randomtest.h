@@ -128,8 +128,8 @@ public:
 		m_proj.resize(samples[s1].x.size());
 		minusVec(samples[s1].x, samples[s2].x, m_proj);
 		normalize(m_proj);
-
-		m_threshold = 0.5 * (dot(samples[s1].x, m_proj) + dot(samples[s2].x, m_proj));
+		float sectionRatio = 0.2 + 0.6*randDouble();
+		m_threshold = sectionRatio * dot(samples[s1].x, m_proj) + (1 - sectionRatio) * dot(samples[s2].x, m_proj);
 
 	}
 

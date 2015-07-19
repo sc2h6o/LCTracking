@@ -37,14 +37,14 @@ public:
 
 		int numTries;
 		for (int i = 0; i < m_hp.numTrees; i++) {
-			numTries = poisson(1.0);
+			numTries = poisson(m_hp.lamda);
 			if (numTries) {
 				for (int n = 0; n < 2; n++) {
 					m_trees[i]->insert(sample);
 				}
 			}
 			else {
-				m_trees[i]->test(sample);
+				m_trees[i]->addTest(sample);
 			}
 		}
 	}
@@ -96,17 +96,17 @@ public:
 			}
 			delete m_trees[minIndex];
 			m_trees[minIndex] = m_trees[i];
-
 			m_trees[i] = new OnlineTree(m_hp, m_numClasses);
+			m_trees[i]->foregetScore();
 
-		}
-		// if some replacement happened, forget some scores
-		if(flag){
-			cout << "*****************************************" << endl << endl;
-			cout << "Forest Refreshed for " << minIndex << endl << endl;
-			cout << "*****************************************" << endl;
-			for (int i = 0; i < m_hp.numTrees - m_hp.numGrowTrees; i++)
-				m_trees[i]->foregetScore();
+			// if some replacement happened, forget some scores
+			if (flag){
+				cout << "*****************************************" << endl << endl;
+				cout << "Forest Refreshed for " << minIndex << endl << endl;
+				cout << "*****************************************" << endl;
+				/*for (int i = 0; i < m_hp.numTrees - m_hp.numGrowTrees; i++)
+				m_trees[i]->foregetScore();*/
+			}
 		}
 	}
 

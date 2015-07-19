@@ -13,24 +13,24 @@ CompressiveTracker::CompressiveTracker(void)
 	split_hrzt = 4;		// number of splitted segments
 	split_vrtc = 4;
 	classNum = split_hrzt * split_vrtc + 2;
-	overlap = 0.25;
+	overlap = 0.3;
 	ratioUncertain = 0.2;
 	sampleNumPos = 30;
-	sampleNumNeg = 200;
+	sampleNumNeg = 400;
+	sampleNumNegInit = 200;
 	sampleNumUncertain = 200;
 	ratioeMarginOut = 1.5;
-	ratioMarginIn = 0.1;
-	thrsdBG = 4;
-	thrsdSelf = 3;
+	ratioMarginIn = 0.75;
+	thrsdBG = 999;
+	thrsdSelf = 999;
 	thrsdUncertain = 2.5;
 	sigmaSamplePos = 0.0 / 12;
 	sigmaSampleNeg = 0.0 / 12;
 
-	rOuterPositive_init = 4;
-	rOuterPositive = 4;	// radical scope of positive samples
+	rOuterPositive_init = 3;
+	rOuterPositive = 3;	// radical scope of positive samples
 	rSearchWindowLg = 80; // size of search window
 	rSearchWindowSm = 10; // size of search window
-	numSearchLg = 8;
 	probSearchLg = 0.08;
 	scaleMin = 0.85f;
 	scaleMax = 1.16f;
@@ -45,15 +45,16 @@ CompressiveTracker::CompressiveTracker(void)
 	learnRate = 0.85f;	// Learning rate parameter
 	// hyperparameter for orf
 	hp.counterThreshold = 70;
-	hp.maxDepth = 15;
+	hp.maxDepth = 20;
 	hp.useUncertain = true;
 	hp.splitRatioUncertain = 2.5;  // a node could split when samples are less than ratio*uncertains
 	hp.numRandomTests = 30;
-	hp.numTrees = 3;
+	hp.numTrees = 4;
 	hp.numGrowTrees = 1;
-	hp.MatureDepth = 10;
+	hp.MatureDepth = 15;
 	hp.useSoftVoting = true;
 	hp.verbose = 1;
+	hp.lamda = 1.0;
 
 	result.confidence.resize(classNum, 0);
 }
@@ -171,7 +172,7 @@ void CompressiveTracker::getUncertainSample(Sample& sample){
 	sample.w = 1.0;
 }
 
-void CompressiveTracker::sampleRect(Mat& _image, Rect& _objectBox, float _rOuter, float _rInner, int _maxSampleNum, bool checkBG,vector<Rect>& _sampleBox)
+void CompressiveTracker::sampleRect(Mat& _image, Rect& _objectBox, Rect bound, float _rOuter, float _rInner, int _maxSampleNum, bool checkBG,vector<Rect>& _sampleBox)
 /* Description: compute the coordinate of positive and negative sample image templates
    Arguments:
    -_image:        processing frame
@@ -195,7 +196,10 @@ void CompressiveTracker::sampleRect(Mat& _image, Rect& _objectBox, float _rOuter
 	int mincol = max(0, (int)_objectBox.x - (int)_rOuter);
 	int maxcol = min((int)colsz - 1, (int)_objectBox.x + (int)_rOuter);
 
-
+	/*minrow = max(minrow, bound.y);
+	maxrow = min(maxrow, bound.y+bound.height);
+	mincol = max(mincol, bound.x);
+	maxcol = min(maxcol, bound.x + bound.width);*/
 
 	int i = 0;
 
@@ -314,6 +318,7 @@ void CompressiveTracker::getFeatureValue(Mat& _imageIntegral, vector<Rect>& _sam
 	_sampleFeatureValue.create(featureNum, sampleBoxSize, CV_32F);
 	float tempValue;
 	float tempArea;
+	float reproArea;
 	int xMin;
 	int xMax;
 	int yMin;
@@ -335,8 +340,8 @@ void CompressiveTracker::getFeatureValue(Mat& _imageIntegral, vector<Rect>& _sam
 				yMin = _sampleBox[j].y + _sampleBox[j].height * (features[i][k].y);
 				yMax = _sampleBox[j].y + _sampleBox[j].height * (features[i][k].y + features[i][k].height);
 				tempArea = (xMax - xMin)*(yMax - yMin);
-
-				tempValue += (1.0 / tempArea) * featuresWeight[i][k] *
+				reproArea = (tempArea == 0) ? 0 : (1.0 / tempArea);
+				tempValue += reproArea * featuresWeight[i][k] *
 					(_imageIntegral.at<float>(yMin, xMin) +
 					_imageIntegral.at<float>(yMax, xMax) -
 					_imageIntegral.at<float>(yMin, xMax) -
@@ -462,6 +467,7 @@ void CompressiveTracker::evalORF(Mat& _splitFeatureValue, vector<float>& confide
 
 		//confidence[i] = 0.5 * (result.confidence[i] - 1 * result.confidence[split_hrzt*split_vrtc] + 1);
 		confidence[i] = result.confidence[i];
+		//confidence[i] = result.confidence[i] / (result.confidence[i] + result.confidence[split_hrzt*split_vrtc]);
 	}
 }
 
@@ -482,14 +488,14 @@ void CompressiveTracker::evalORF(Mat& _splitFeatureValue, vector<float>& confide
 		t += (cvGetTickCount() - tc) / getTickFrequency();
 		//confidence[i] = 0.5 * (result.confidence[i] - 1 * result.confidence[split_hrzt*split_vrtc] + 1);
 		confidence[i] = result.confidence[i];
-
+		//confidence[i] = result.confidence[i] / (result.confidence[i] + result.confidence[split_hrzt*split_vrtc]);
 	}
 }
 
 bool OnlineNode::echo = false;
 void CompressiveTracker::checkConfid(Mat& _splitFeatureValue)
 {
-	OnlineNode::echo = true;
+	OnlineNode::echo = false;
 	int splitNum = _splitFeatureValue.cols;
 	for (int i = 0; i < _splitFeatureValue.cols; i++){
 		Sample sample;
@@ -514,14 +520,14 @@ void CompressiveTracker::checkConfid(Mat& _splitFeatureValue)
 	OnlineNode::echo = false;
 }
 
-void CompressiveTracker::siftSample(int splitIndex, Mat& samplePositiveFeatureValuevector, vector<Rect>& samplePositiveBox, vector<Rect>& sampleNegativeBox){
+void CompressiveTracker::siftSample(int splitIndex, Mat& sampleFeatureValue, vector<Rect>& sampleBoxes){
 	vector<Rect> positive_new;
 
-	for (int i = 0; i < samplePositiveFeatureValue.cols; i++){
+	for (int i = 0; i < sampleFeatureValue.cols; i++){
 		Sample sample;
-		sample.x.resize(samplePositiveFeatureValue.rows);
-		for (int j = 0; j < samplePositiveFeatureValue.rows; j++){
-			sample.x[j] = samplePositiveFeatureValue.at<float>(j, i);
+		sample.x.resize(sampleFeatureValue.rows);
+		for (int j = 0; j < sampleFeatureValue.rows; j++){
+			sample.x[j] = sampleFeatureValue.at<float>(j, i);
 		}
 		sample.w = 1.0;
 
@@ -536,20 +542,74 @@ void CompressiveTracker::siftSample(int splitIndex, Mat& samplePositiveFeatureVa
 			if (j != splitIndex) 
 				confid_other = max(confid_other, (float)result.confidence[j]);
 		}
-		// pick out bcg patches
-		if (confid_bg > thrsdBG * confid_fg && 
+		if (splitIndex < split_hrzt*split_vrtc &&
+			confid_bg > thrsdBG * confid_fg &&
 			ratioUncertain*confid_bg > thrsdUncertain*result.confidence[split_hrzt*split_vrtc + 1])
 		{
-			sampleNegativeBox.push_back(samplePositiveBox[i]);
-			rectangle(neg, samplePositiveBox[i], confid_bg * 255, -1);
+			// pick out false positive samples
+			// sampleNegativeBox.push_back(samplePositiveBox[i]);
+			rectangle(neg, sampleBoxes[i], confid_bg * 255, -1);
+		}
+		else if(confid_self > thrsdSelf * confid_other){
+			// pick out fully coonfident patches
+			rectangle(neg, sampleBoxes[i], 10, 1);
 		}
 		else{
-			// pick out fully coonfident patches
-			if (confid_self < thrsdSelf * confid_other)
-				positive_new.push_back(samplePositiveBox[i]);
+			positive_new.push_back(sampleBoxes[i]);
 		}
 	}
-	samplePositiveBox = positive_new;
+	sampleBoxes = positive_new;
+}
+
+void CompressiveTracker::testProb(Mat& _frame, Rect& _objectBox, Mat& imageIntegral){
+	Mat frame_p;
+	frame_p = _frame.clone();
+	SplitBox(_objectBox, splitBox);
+	Rect screen(0, 0, _frame.cols - splitBox[0].width, _frame.rows - splitBox[0].width);
+	Point2f center = 0.5 * (_objectBox.tl() + _objectBox.br());
+	vector<Rect> tests;
+	for (int i = 0; i < 80; i++){
+		int radius = 100;
+		int x = rng.uniform(center.x - radius, center.x + radius);
+		int y = rng.uniform(center.y - radius, center.y + radius);
+		Point tl(x, y);
+		Point br(x + splitBox[0].width, y + splitBox[0].height);
+		if (screen.contains(tl) && screen.contains(br)){
+			tests.push_back(Rect(tl,br));
+		}
+	}
+
+
+	Mat feature_value;
+	vector<float> confid;
+	getFeatureValue(imageIntegral, tests, 1, feature_value);
+	for (int i = 0; i < feature_value.cols; i++){
+		Sample sample;
+		sample.x.resize(feature_value.rows);
+		for (int j = 0; j < feature_value.rows; j++){
+			sample.x[j] = feature_value.at<float>(j, i);
+		}
+		sample.w = 1.0;
+
+		orf.eval(sample, result);
+		rectangle(frame_p, tests[i], result.confidence[split_hrzt*split_vrtc] * 255, -1);
+	}
+	imshow("frame_p", frame_p);
+}
+
+Rect CompressiveTracker::meanShift(vector<float> confidence, vector<Rect>detectBox){
+	if (detectBox.empty()) return Rect(0, 0, 0, 0);
+	Point tl(0, 0);
+	Point diag = (detectBox[0].br() - detectBox[0].tl());
+	float confidSum = 0;
+	float alpha = 2;
+	for (int i = 0; i < detectBox.size(); i++){
+		tl += exp(alpha * confidence[i]) * detectBox[i].tl();
+		confidSum += exp(alpha * confidence[i]);
+	}
+	if (confidSum == 0) return detectBox[0];
+	tl = (1.0 / confidSum) * tl;
+	return Rect(tl, tl + diag);
 }
 
 void CompressiveTracker::init(Mat& _frame, Mat& _image_rgb, Rect& _objectBox)
@@ -580,12 +640,12 @@ void CompressiveTracker::init(Mat& _frame, Mat& _image_rgb, Rect& _objectBox)
 		max(rSearchWindowLg, (int)(ratioeMarginOut * splitBox[0].width)),
 		max(rSearchWindowLg, (int)(ratioeMarginOut * splitBox[0].height)),
 		(int)(ratioMarginIn * splitBox[0].width), (int)(ratioMarginIn * splitBox[0].height),
-		sampleNumNeg, splitBox[0].width, splitBox[0].height, sampleNegativeBox);
+		sampleNumNegInit, splitBox[0].width, splitBox[0].height, sampleNegativeBox);
 	getFeatureValue(imageIntegral, sampleNegativeBox, 1, sampleNegativeFeatureValue);
 	insertORF(sampleNegativeFeatureValue, split_hrzt*split_vrtc);
 	
 	for (int i = 0; i < split_hrzt*split_vrtc; i++){
-		sampleRect(_frame, splitBox[i], rOuterPositive_init, 0, sampleNumPos, false, samplePositiveBox);
+		sampleRect(_frame, splitBox[i], _objectBox, rOuterPositive_init, 0, sampleNumPos, false, samplePositiveBox);
 		//samplePositiveBox.clear();
 		//samplePositiveBox.resize(sampleNumPos, splitBox[i]);
 		getFeatureValue(imageIntegral, samplePositiveBox, 1, samplePositiveFeatureValue);
@@ -601,7 +661,7 @@ void CompressiveTracker::init(Mat& _frame, Mat& _image_rgb, Rect& _objectBox)
 	SplitBox(_objectBox, splitBox);
 	getFeatureValue(imageIntegral, splitBox, 1, detectFeatureValue);
 	checkConfid(detectFeatureValue);
-
+	testProb(_frame, _objectBox, imageIntegral);
 	imshow("neg", neg);
 	imshow("confid", confid);
 	waitKey(1);
@@ -654,9 +714,10 @@ void CompressiveTracker::processFrame(Mat& _frame, Mat& _image_rgb, Rect& _objec
 			t1 += (getTickCount() - tc) / freq;
 
 			evalORF(detectFeatureValue, splitConfid, t2);
-			for (int j = 0; j < splitConfid.size(); j++){
+			/*for (int j = 0; j < splitConfid.size(); j++){
 				confidTemp += splitConfid[j] / splitConfid.size();
-			}
+			}*/
+			confidTemp = softmax(splitConfid);
 			boxResize.push_back(boxTemp);
 			confidResize.push_back(confidTemp);
 		}
@@ -689,9 +750,10 @@ void CompressiveTracker::processFrame(Mat& _frame, Mat& _image_rgb, Rect& _objec
 			t1 += (getTickCount() - tc) / freq;
 
 			evalORF(detectFeatureValue, splitConfid, t2);
-			for (int j = 0; j < splitConfid.size(); j++){
+			/*for (int j = 0; j < splitConfid.size(); j++){
 				confidTemp += splitConfid[j] / splitConfid.size();
-			}
+			}*/
+			confidTemp = avrg(splitConfid);
 			boxResize.push_back(boxTemp);
 			confidResize.push_back(confidTemp);
 		}
@@ -701,31 +763,7 @@ void CompressiveTracker::processFrame(Mat& _frame, Mat& _image_rgb, Rect& _objec
 		//like.at<uchar>(0.5*(detectBox[i].tl() + detectBox[i].br())) = confidence[i] * 255;
 	}
 	_objectBox = detectBox[argmax(confidence)];
-
-	//a more detailed detect with different size
-	//boxResize.clear();
-	//confidResize.clear();
-	//// test different size
-	//for (float scale = scaleMin; scale < scaleMax; scale += scaleStepSm){
-	//	Rect boxTemp;
-	//	float confidTemp = 0;
-	//	vector<float> splitConfid;
-	//	scaleBox(_objectBox, boxTemp, scale);
-	//	if (!boxInImage(_frame, boxTemp)) continue;
-	//	tc = getTickCount();
-	//	SplitBox(boxTemp, splitBox);
-	//	getFeatureValue(imageIntegral, splitBox, 1, detectFeatureValue);
-	//	t1 += (getTickCount() - tc) / freq;
-
-	//	evalORF(detectFeatureValue, splitConfid, t2);
-	//	for (int j = 0; j < splitConfid.size(); j++){
-	//		confidTemp += splitConfid[j] / splitConfid.size();
-	//	}
-	//	boxResize.push_back(boxTemp);
-	//	confidResize.push_back(confidTemp);
-	//}
-	//int sizeMaxIndex = argmax(confidResize);
-	//_objectBox = boxResize[sizeMaxIndex];
+	//_objectBox = meanShift(confidence, detectBox);
 
 	/*********update*********/
 	orf.refresh();
@@ -741,18 +779,20 @@ void CompressiveTracker::processFrame(Mat& _frame, Mat& _image_rgb, Rect& _objec
 		(int)(ratioMarginIn * splitBox[0].width), (int)(ratioMarginIn * splitBox[0].height),
 		sampleNumNeg, splitBox[0].width, splitBox[0].height, sampleNegativeBox);
 	getFeatureValue(imageIntegral, sampleNegativeBox, 1, sampleNegativeFeatureValue);
+	siftSample(split_hrzt*split_vrtc, sampleNegativeFeatureValue, sampleNegativeBox);
+	getFeatureValue(imageIntegral, sampleNegativeBox, 1, sampleNegativeFeatureValue);
 	insertORF(sampleNegativeFeatureValue, split_hrzt*split_vrtc);
 	//orf.update();
 	sampleNegativeBox.clear();
 	for (int i = 0; i < split_hrzt*split_vrtc; i++){
 
 		tc = getTickCount();
-		sampleRect(_frame, splitBox[i], rOuterPositive, 0.0, sampleNumPos, false, samplePositiveBox);
+		sampleRect(_frame, splitBox[i], _objectBox, rOuterPositive, 0.0, sampleNumPos, false, samplePositiveBox);
 		//sampleRect(_frame, splitBox[i], rSearchWindow*1.5, rOuterPositive + 3.0, 100, false, sampleNegativeBox);
 		//samplePositiveBox.clear();
 		//samplePositiveBox.resize(sampleNumPos, splitBox[i]);
 		getFeatureValue(imageIntegral, samplePositiveBox, 1, samplePositiveFeatureValue);
-		siftSample(i, samplePositiveFeatureValue, samplePositiveBox, sampleNegativeBox);
+		siftSample(i, samplePositiveFeatureValue, samplePositiveBox);
 		getFeatureValue(imageIntegral, samplePositiveBox, 1, samplePositiveFeatureValue);
 		//cout << "samples of patch "<< i << ": "<< samplePositiveBox.size() << " " << sampleNegativeBox.size() << endl;
 		t3 += (getTickCount() - tc) / freq;
@@ -784,6 +824,7 @@ void CompressiveTracker::processFrame(Mat& _frame, Mat& _image_rgb, Rect& _objec
 	cout << "node::eval uses " << t6 << "seconds" << endl;
 
 	rectangle(neg, _objectBox, 32);
+	testProb(_frame, _objectBox, imageIntegral);
 	imshow("neg", neg);
 	imshow("confid",confid);
 	imshow("like", like);

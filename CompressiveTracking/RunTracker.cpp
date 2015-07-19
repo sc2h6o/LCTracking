@@ -23,7 +23,7 @@ Rect box_test;
 bool drawing_box = false;
 bool moving_box = false;
 bool gotBB = false;	// got tracking box or not
-bool fromfile = false;
+bool fromfile = true;
 string video;
 
 void readBB(char* file)	// get tracking box from file
@@ -138,11 +138,11 @@ void read_options(int argc, char** argv, VideoCapture& capture)
 int main(int argc, char * argv[])
 {
 	SeqCapture capture;
-	string filename = "david.mpg";
+	string filename = "img/shaking";
 
-	capture.open(0);
-	//capture.setNameFormat(0, ".jpg");
-	//capture.open(filename, false);
+	//capture.open(0);
+	capture.setNameFormat(0, ".jpg");
+	capture.open(filename, true);
 	// Read options
 	// read_options(argc, argv, capture);
 	// Init camera
@@ -169,8 +169,8 @@ int main(int argc, char * argv[])
 	}
 	else
 	{
-		capture.set(CV_CAP_PROP_FRAME_WIDTH, 340);
-		capture.set(CV_CAP_PROP_FRAME_HEIGHT, 240);
+		capture.set(CV_CAP_PROP_FRAME_WIDTH, 510);
+		capture.set(CV_CAP_PROP_FRAME_HEIGHT, 360);
 	}
 
 	// Initialization

@@ -29,11 +29,20 @@ public:
     virtual void update() {
 		m_rootNode->update(height);
 		height--; // to keep same with root
+		
+		for (int i = 0; i < testSamples.size(); i++){
+			test(testSamples[i]);
+		}
+		testSamples.clear();
 	}
 
 	static double t;
 	virtual void eval(Sample &sample, Result& result) {
 		m_rootNode->eval(sample, result);
+	}
+
+	void addTest(Sample& sample){
+		testSamples.push_back(sample);
 	}
 
 	void test(Sample& sample){
@@ -119,6 +128,7 @@ private:
 	double testScore;
 	double testCnt;
 	int height;
+	vector<Sample> testSamples;
     const Hyperparameters *m_hp;
 
 	OnlineNode* m_rootNode;
