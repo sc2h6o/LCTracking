@@ -138,7 +138,7 @@ void read_options(int argc, char** argv, VideoCapture& capture)
 int main(int argc, char * argv[])
 {
 	SeqCapture capture;
-	string filename = "img/shaking";
+	string filename = "img/caviar";
 
 	//capture.open(0);
 	capture.setNameFormat(0, ".jpg");

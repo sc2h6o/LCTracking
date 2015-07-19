@@ -106,6 +106,16 @@ inline double softmax(const vector<float> &inVect) {
 	return numerator / dominator;
 }
 
+inline int getRank(const vector<float> &inVect, int index){
+	int rank = 1;
+	for (int i = 0; i < inVect.size(); i++) {
+		if (i == index) continue;
+		if (inVect[i]>inVect[index])
+			rank++;
+	}
+	return rank;
+}
+
 inline double sum(const vector<double> &inVect) {
     double val = 0.0;
     vector<double>::const_iterator itr(inVect.begin()), end(inVect.end());

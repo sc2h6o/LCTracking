@@ -76,6 +76,7 @@ private:
 	float thrsdUncertain;
 	float sigmaSamplePos;
 	float sigmaSampleNeg;
+	float ratioOrigin;
 	vector<Rect> detectBox;
 	vector<Rect> splitBox;
 	vector<vector<Rect>> detectSplit;
@@ -87,7 +88,9 @@ private:
 	Mat neg;
 	Mat confid;
 	Hyperparameters hp;
+	Hyperparameters hpOrigin;
 	OnlineRF orf;
+	OnlineRF orfOrigin;
 	Result result;
 
 private:
@@ -104,14 +107,13 @@ private:
 	void classifierUpdate(Mat& _sampleFeatureValue, vector<float>& _mu, vector<float>& _sigma, float _learnRate);
 	void radioClassifier(vector<vector<float>>& _muPos, vector<vector<float>>& _sigmaPos, vector<vector<float>>& _muNeg,
 		vector<vector<float>>& _sigmaNeg, Mat& _splitFeatureValue, vector<float>& splitRadios);
-	void insertORF(Mat& _sampleFeatureValue, int label);
-	void evalORF(Mat& _splitFeatureValue, vector<float>& confidence);
-	void evalORF(Mat& _splitFeatureValue, vector<float>& confidence, double &t);
+	void insertORF(OnlineRF& orf, Mat& _sampleFeatureValue, int label);
+	void evalORF(OnlineRF& orf, Mat& _splitFeatureValue, vector<float>& confidence);
+	void evalORF(OnlineRF& orf, Mat& _splitFeatureValue, vector<float>& confidence, double &t);
 	void backProj(Mat& _image_rgb, Rect boundIn, Rect boundOut, Mat& backProj);
 	float checkBackProj(const Rect box, const Mat& backProj1, const Mat& backProj2);
 	void siftSample(int splitIndex, Mat& sampleFeatureValue, vector<Rect>& sampleBoxes);
-	void checkConfid(Mat& _splitFeatureValue);
-	void testProb(Mat& _frame, Rect& _objectBox, Mat& imageIntegral);
+	void checkConfid(OnlineRF& orf, Mat& _splitFeatureValue);
 	Rect meanShift(vector<float> confidence, vector<Rect>detectBox);
 public:
 	void processFrame(Mat& _frame, Mat& _image_rgb, Rect& _objectBox);
