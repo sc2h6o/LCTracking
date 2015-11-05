@@ -83,6 +83,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>D:\software\opencv 2.4.9\build\include;$(IncludePath)</IncludePath>
     <LibraryPath>D:\software\opencv 2.4.9\build\x64\vc12\lib;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

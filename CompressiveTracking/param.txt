@@ -1,0 +1,119 @@
+david:
+featureNum = 10;	// number of all weaker classifiers, i.e,feature pool
+split_hrzt = 6;		// number of splitted segments
+split_vrtc = 6;
+overlap = 0.6;
+ratioOrigin = 0.0;
+eqhst = true;
+alpha = 3;
+bias = 0.5;
+rSearchWindowLg = 20; // size of search window
+rSearchWindowSm = 4; // size of search window
+scaleStepSm = 0.05f;
+
+shaking:
+featureNum = 10;	// number of all weaker classifiers, i.e,feature pool
+split_hrzt = 6;		// number of splitted segments
+split_vrtc = 6;
+overlap = 0.6;
+ratioOrigin = 0.6;
+eqhst = true;
+alpha = 3;
+bias = 0.5;
+rSearchWindowLg = 20; // size of search window
+rSearchWindowSm = 4; // size of search window
+scaleStepSm = 0.05f;
+
+singer1:
+featureNum = 10;	// number of all weaker classifiers, i.e,feature pool
+split_hrzt = 6;		// number of splitted segments
+split_vrtc = 6;
+overlap = 0.6;
+ratioOrigin = 0.6;
+eqhst = true;
+alpha = 3;
+bias = 0.5;
+rSearchWindowLg = 20; // size of search window
+rSearchWindowSm = 4; // size of search window
+scaleStepSm = 0.01f;
+
+animal:
+featureNum = 10;	// number of all weaker classifiers, i.e,feature pool
+split_hrzt = 6;		// number of splitted segments
+split_vrtc = 6;
+overlap = 0.6;
+ratioOrigin = 0.6;
+eqhst = true;
+alpha = 3;
+bias = 0.5;
+rSearchWindowLg = 40; // size of search window
+rSearchWindowSm = 6; // size of search window
+scaleStepSm = 0.05f;
+
+football:
+featureNum = 10;	// number of all weaker classifiers, i.e,feature pool
+split_hrzt = 6;		// number of splitted segments
+split_vrtc = 6;
+overlap = 0.6;
+ratioOrigin = 0.5;
+eqhst = false;
+alpha = 3;
+bias = 0.5;
+rSearchWindowLg = 25; // size of search window
+rSearchWindowSm = 6; // size of search window
+scaleStepSm = 0.05f;
+
+
+woman:
+featureNum = 10;	// number of all weaker classifiers, i.e,feature pool
+split_hrzt = 4;		// number of splitted segments
+split_vrtc = 9;
+overlap = 0.3;
+ratioOrigin = 0.8;
+eqhst = false;
+alpha = 3;
+bias = 0.5;
+rSearchWindowLg = 15; // size of search window
+rSearchWindowSm = 5; // size of search window
+scaleStepSm = 0.05f;
+
+faceocc:
+featureNum = 10;	// number of all weaker classifiers, i.e,feature pool
+split_hrzt = 4;		// number of splitted segments
+split_vrtc = 4;
+overlap = 0.3;
+ratioOrigin = 0.5;
+eqhst = false;
+alpha = 3;
+bias = 0.5;
+rSearchWindowLg = 15; // size of search window
+rSearchWindowSm = 5; // size of search window
+scaleStepSm = 0.05f;
+
+faceocc:
+featureNum = 10;	// number of all weaker classifiers, i.e,feature pool
+split_hrzt = 4;		// number of splitted segments
+split_vrtc = 4;
+overlap = 0.3;
+ratioOrigin = 0.5;
+eqhst = false;
+alpha = 3;
+bias = 0.5;
+rSearchWindowLg = 15; // size of search window
+rSearchWindowSm = 5; // size of search window
+scaleStepSm = 0.05f;
+
+
+tiger
+featureNum = 10;	// number of all weaker classifiers, i.e,feature pool
+split_hrzt = 4;		// number of splitted segments
+split_vrtc = 4;
+overlap = 0.3;
+ratioOrigin = 0.5;
+eqhst = false;
+alpha = 3;
+bias = 0.5;
+rSearchWindowLg = 15; // size of search window
+rSearchWindowSm = 5; // size of search window
+scaleStepSm = 0.05f;
+

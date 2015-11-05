@@ -12,16 +12,22 @@ public:
 	OnlineRF(){};
 
     ~OnlineRF() {
-        for (int i = 0; i < m_hp.numTrees; i++) {
+		for (int i = 0; i < m_trees.size(); i++) {
             delete m_trees[i];
         }
+		m_trees.clear();
 	}
 
 	void init(const Hyperparameters &hp, int numClasses)
 	{
+		for (int i = 0; i < m_trees.size(); i++) {
+			delete m_trees[i];
+		}
+		m_trees.clear();
 		m_numClasses = numClasses;
 		m_counter = 0.0;
 		m_hp = hp;
+		m_replaceIndex = 0;
 		// at first init all trees, then discard some to establish grow trees
 		OnlineTree *tree;
 		for (int i = 0; i < hp.numTrees; i++) {
@@ -43,8 +49,8 @@ public:
 					m_trees[i]->insert(sample);
 				}
 			}
-			else {
-				m_trees[i]->addTest(sample);
+			else if(i < m_hp.numTrees - m_hp.numGrowTrees) {
+				m_trees[i]->test(sample);
 			}
 		}
 	}
@@ -85,7 +91,9 @@ public:
 			//replace the worst tree
 			minScore = DBL_MAX;
 			minIndex = -1;
+			cout << "score: ";
 			for (int j = 0; j < m_hp.numTrees - m_hp.numGrowTrees; j++){
+				cout << m_trees[j]->score()<<" ";
 				if (m_trees[j]->score() < minScore){
 					minScore = m_trees[j]->score();
 					minIndex = j;
@@ -94,18 +102,22 @@ public:
 
 				}
 			}
+			cout << endl;
+			/*minIndex = m_replaceIndex;
+			m_replaceIndex++;
+			if (m_replaceIndex == m_hp.numTrees - m_hp.numGrowTrees)
+				m_replaceIndex = 0;*/
 			delete m_trees[minIndex];
 			m_trees[minIndex] = m_trees[i];
 			m_trees[i] = new OnlineTree(m_hp, m_numClasses);
-			m_trees[i]->foregetScore();
 
 			// if some replacement happened, forget some scores
 			if (flag){
 				cout << "*****************************************" << endl << endl;
 				cout << "Forest Refreshed for " << minIndex << endl << endl;
 				cout << "*****************************************" << endl;
-				/*for (int i = 0; i < m_hp.numTrees - m_hp.numGrowTrees; i++)
-				m_trees[i]->foregetScore();*/
+				for (int i = 0; i < m_hp.numTrees - m_hp.numGrowTrees; i++)
+					m_trees[i]->foregetScore();
 			}
 		}
 	}
@@ -175,6 +187,7 @@ public:
 protected:
     int m_numClasses;
     double m_counter;
+	int m_replaceIndex;
     Hyperparameters m_hp;
 
 	Result treeResult;

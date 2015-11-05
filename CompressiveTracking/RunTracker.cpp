@@ -1,12 +1,4 @@
-/************************************************************************
-* File:	RunTracker.cpp
-* Brief: C++ demo for Kaihua Zhang's paper:"Real-Time Compressive Tracking"
-* Version: 1.0
-* Author: Yang Xian
-* Email: yang_xian521@163.com
-* Date:	2012/08/03
-* History:
-************************************************************************/
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
@@ -26,7 +18,14 @@ bool gotBB = false;	// got tracking box or not
 bool fromfile = true;
 string video;
 
-void readBB(char* file)	// get tracking box from file
+string seqName;
+string outDir;
+string seqDir;
+int startFrame = 1;
+int endFrame = INT_MAX;
+
+
+void readBB(const string& file)	// get tracking box from file
 {
 	ifstream tb_file (file);
 	string line;
@@ -35,8 +34,14 @@ void readBB(char* file)	// get tracking box from file
 	string x1, y1, w1, h1;
 	getline(linestream, x1, ',');
 	getline(linestream, y1, ',');
-	getline(linestream, w1, ',');
-	getline(linestream, h1, ',');
+	if (!y1.empty()) {
+		getline(linestream, w1, ',');
+		getline(linestream, h1, ',');
+	}
+	else{
+		istringstream linestream(line);
+		linestream >> x1 >> y1 >> w1 >> h1;
+	}
 	int x = atoi(x1.c_str());
 	int y = atoi(y1.c_str());
 	int w = atoi(w1.c_str());
@@ -132,19 +137,68 @@ void read_options(int argc, char** argv, VideoCapture& capture)
 				print_help();
 			}
 		}
+
+		if (strcmp(argv[i], "-outdir") == 0)	// read video from file
+		{
+			if (argc > i)
+			{
+				outDir = string(argv[i + 1]);
+			}
+			else
+			{
+				print_help();
+			}
+		}
+
+		if (strcmp(argv[i], "-seqname") == 0)	// read video from file
+		{
+			if (argc > i)
+			{
+				seqName = string(argv[i + 1]);
+			}
+			else
+			{
+				print_help();
+			}
+		}
+
+		if (strcmp(argv[i], "-seqdir") == 0)	// read video from file
+		{
+			if (argc > i)
+			{
+				seqDir = string(argv[i + 1]);
+			}
+			else
+			{
+				print_help();
+			}
+		}
 	}
 }
 
 int main(int argc, char * argv[])
 {
 	SeqCapture capture;
-	string filename = "img/caviar";
-
+	BoxWriter bw;
 	//capture.open(0);
-	capture.setNameFormat(0, ".jpg");
-	capture.open(filename, true);
+
 	// Read options
-	// read_options(argc, argv, capture);
+	read_options(argc, argv, capture);
+	assert(seqName.size() > 0 && seqDir.size() > 0);
+	string output = outDir + "/" +seqName + "_lrf.txt";
+	string imgdir = seqDir + "/" + seqName + "/" + "img";
+	string boxfile = seqDir + "/" + seqName + "/" + "groundtruth_rect.txt";
+
+	if (seqName == "david" || seqName == "David"){
+		startFrame = 300;
+	}
+
+	capture.setRange(startFrame, endFrame);
+	capture.setNameFormat(4, ".jpg");
+	capture.open(imgdir, true);
+	bw.open(output);
+	readBB(boxfile);
+	gotBB = true;
 	// Init camera
 	if (!capture.isOpened())
 	{
@@ -169,8 +223,8 @@ int main(int argc, char * argv[])
 	}
 	else
 	{
-		capture.set(CV_CAP_PROP_FRAME_WIDTH, 510);
-		capture.set(CV_CAP_PROP_FRAME_HEIGHT, 360);
+		capture.set(CV_CAP_PROP_FRAME_WIDTH, 360);
+		capture.set(CV_CAP_PROP_FRAME_HEIGHT, 240);
 	}
 
 	// Initialization
@@ -187,7 +241,7 @@ int main(int argc, char * argv[])
 		cvtColor(frame, last_gray, CV_RGB2GRAY);
 		rectangle(frame, box, Scalar(0,0,255));
 		imshow("CT", frame);
-		if (cvWaitKey(33) == 'q') {	return 0; }
+		if (cvWaitKey(10) == 'q') {	return 0; }
 	}
 	
 	// Remove callback
@@ -198,7 +252,7 @@ int main(int argc, char * argv[])
 
 	// Run-time
 	Mat current_gray, display;
-
+	//bw.write(box);
 	while(moving_box || capture.read(frame))
 	{
 		// get frame
@@ -215,11 +269,13 @@ int main(int argc, char * argv[])
 		// Display
 		imshow("prob", current_gray);
 		imshow("CT", display);
+		bw.write(box);
 		
 		//printf("Current Tracking Box = x:%d y:%d h:%d w:%d\n", box.x, box.y, box.width, box.height);
 
-		if (cvWaitKey(60) == 'q') {	break; }
-		if (cvWaitKey(60) == 'p') { 
+		int key = cvWaitKey(1);
+		if (key == 'q') { break; }
+		if (key == 'p') {
 			if (!moving_box) {
 				box_test = box;
 				moving_box = true;
@@ -231,5 +287,6 @@ int main(int argc, char * argv[])
 
 		}
 	}
+	bw.close();
 	return 0;
 }

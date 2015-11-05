@@ -94,14 +94,13 @@ inline double avrg(const vector<float> &inVect) {
 	return result / inVect.size();
 }
 
-inline double softmax(const vector<float> &inVect) {
+inline double softmax(const vector<float> &inVect, float alpha, float bias) {
 	if (inVect.size() == 0) return 0;
-	float alpha = 3;
 	float numerator = DBL_MIN;
 	float dominator = DBL_MIN;
 	for (int i = 0; i < inVect.size(); i++) {
-		numerator += exp(alpha * abs(inVect[i]-0.5)) * inVect[i];
-		dominator += exp(alpha * abs(inVect[i]-0.5));
+		numerator += exp(alpha * abs(inVect[i] - bias)) * inVect[i];
+		dominator += exp(alpha * abs(inVect[i] - bias));
 	}
 	return numerator / dominator;
 }
@@ -229,10 +228,14 @@ inline void minMaxRows(Mat& mat1, Mat& mat2, vector<double>& minVec, vector<doub
 	}
 }
 
+
+
 class SeqCapture : public VideoCapture
 {
 private:
 	bool readImage(Mat& image){
+		if (index > endIndex)
+			return false;
 		string frameName;
 		stringstream ss;
 		ss << index;
@@ -241,7 +244,7 @@ private:
 			int numZero = length - frameName.length();
 			frameName = string(numZero, '0') + frameName;
 		}
-		frameName = dir + frameName + format;
+		frameName = dir + '/' + frameName + format;
 		image = imread(frameName);
 		index++;
 		return image.data;
@@ -251,19 +254,21 @@ public:
 	bool isOpen;
 	bool useSeq;
 	int index;
+	int endIndex;
 	int length;
 	string dir;
 	string format;
 	Mat frame;
 
-	SeqCapture() :isOpen(false),useSeq(false),index(1),length(0),format(".jpg"){};
+	SeqCapture() :isOpen(false), useSeq(false), index(0), endIndex(INT_MAX), length(0), format(".jpg"){};
 
 	virtual bool open(const string& fileName, bool useSequence){
 		useSeq = useSequence;
+		cout << useSeq;
 		if (useSeq){
-			dir = fileName + "/";
+			dir = fileName;
 			isOpen = readImage(frame);
-			index --;
+			index--;
 			return isOpen;
 		}
 		else{
@@ -301,5 +306,28 @@ public:
 		length = nameLength;
 		format = subfix;
 	}
+
+	void setRange(int start, int end){
+		index = start;
+		endIndex = end;
+	}
 };
+
+
+class BoxWriter{
+private:
+	ofstream file;
+public:
+	void open(const string& filename){
+		file.open(filename);
+	};
+	void write(Rect& box){
+		file << box.x << "," << box.y << "," << box.width << "," << box.height << endl;
+	};
+	void close(){
+		file.close();
+	};
+};
+
+
 #endif /* UTILITIES_H_ */

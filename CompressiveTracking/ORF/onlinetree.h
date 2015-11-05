@@ -30,10 +30,10 @@ public:
 		m_rootNode->update(height);
 		height--; // to keep same with root
 		
-		for (int i = 0; i < testSamples.size(); i++){
+		/*for (int i = 0; i < testSamples.size(); i++){
 			test(testSamples[i]);
 		}
-		testSamples.clear();
+		testSamples.clear();*/
 	}
 
 	static double t;
@@ -53,12 +53,13 @@ public:
 	}
 
 	double score(){
+		if (testCnt == 0) return 1;
 		return (testScore / testCnt);
 	}
 
 	void foregetScore(){
-		testCnt *= 1;
-		testScore *= 1;
+		testCnt *= 0;
+		testScore *= 0;
 	}
 
 	bool isMature(){

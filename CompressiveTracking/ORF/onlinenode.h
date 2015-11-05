@@ -82,7 +82,6 @@ public:
 				m_isLeaf = false;
 
 				// Create online tests
-				double tc = cv::getTickCount();
 				m_onlineTests.resize(m_hp->numRandomTests);
 				for (int i = 0; i < m_hp->numRandomTests; i++) {
 					m_onlineTests[i].create(m_numClasses, m_samples);
@@ -90,7 +89,6 @@ public:
 						m_onlineTests[i].update(m_samples[j]);
 					}
 				}
-				t += (cv::getTickCount() - tc) / cv::getTickFrequency();
 
 				// Find the best online test
 				int maxIndex = 0;
@@ -159,6 +157,7 @@ public:
 
 		height = max(height, m_height+1);
 		m_needUpdate = false;
+		m_samples.clear();
 	}
 
     void eval(Sample &sample, Result& result) {
