@@ -14,7 +14,7 @@ using namespace std;
 class OnlineTree: public Classifier {
 public:
     OnlineTree(const Hyperparameters &hp, int numClasses) :
-		m_counter(0.0), m_hp(&hp), testScore(0),testCnt(0),height(0){
+		m_counter(0.0), m_numClasses(numClasses), m_hp(&hp), testScore(0), testCnt(0), height(0){
         m_rootNode = new OnlineNode(hp, numClasses, 0);
     }
 
@@ -27,7 +27,9 @@ public:
 	}
 
     virtual void update() {
-		m_rootNode->update(height);
+		updateP.resize(m_numClasses - 1, 1.0);
+		m_rootNode->updatePrepare(updateP);
+		m_rootNode->update(height, updateP);
 		height--; // to keep same with root
 		
 		/*for (int i = 0; i < testSamples.size(); i++){
@@ -126,10 +128,12 @@ public:
 
 private:
     double m_counter;
+	int m_numClasses;
 	double testScore;
 	double testCnt;
 	int height;
 	vector<Sample> testSamples;
+	vector<double> updateP;
     const Hyperparameters *m_hp;
 
 	OnlineNode* m_rootNode;

@@ -64,6 +64,7 @@ private:
 	float thrsdSelf;
 	float thrsdUncertain;
 	float ratioOrigin;
+	float lastConfid;
 	Hyperparameters hp;
 	Hyperparameters hpOrigin;
 	vector<vector<Rect_<float>>> features;

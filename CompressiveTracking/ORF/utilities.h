@@ -145,6 +145,22 @@ inline void minusVec(const vector<double>& v1, const vector<double> &v2, vector<
 	}
 }
 
+inline void timesVec(const vector<double>& v1, const vector<double> &v2, vector<double>& vecOut){
+	vecOut.resize(v1.size());
+	for (int i = 0; i < v1.size(); i++){
+		vecOut[i] = v1[i] * v2[i];
+	}
+}
+
+inline void devideVec(const vector<double>& v1, const vector<double> &v2, vector<double>& vecOut){
+	vecOut.resize(v1.size());
+	for (int i = 0; i < v1.size(); i++){
+		assert( v2[i] != 0);
+		vecOut[i] = v1[i] / v2[i];
+	}
+}
+
+
 inline double dot(const vector<double>& v1, const vector<double>& v2){
 	assert(v1.size() == v2.size());
 	double proj = 0;
@@ -189,6 +205,15 @@ inline void scaleBox(Rect& inputBox, Rect& outputBox, float scale){
 	center = Point2f(inputBox.x, inputBox.y) + diag;
 	diag *= scale;
 	outputBox = Rect(center - diag, center + diag);
+}
+
+inline void alignBox(Rect& inputBox, Rect& alignTarget,Rect& outputBox){
+	Point2f center, diag;
+	Point2d diagFull;
+	diag = Point2f(0.5 * inputBox.width, 0.5 * inputBox.height);
+	diagFull = Point2d(inputBox.width, inputBox.height);
+	center = 0.5 * Point2f(alignTarget.tl()) + 0.5 * Point2f(alignTarget.br());
+	outputBox = Rect(Point2d(center - diag), Point2d(center - diag) + diagFull);
 }
 
 inline void scaleAndMoveBox(Rect& inputBox, Rect& outputBox, float scale){

@@ -32,7 +32,7 @@ CompressiveTracker::CompressiveTracker(void)
 
 	rOuterPositive_init = 3;
 	rOuterPositive = 3;	// radical scope of positive samples
-	rSearchWindowLg = 30; // size of search window
+	rSearchWindowLg = 35; // size of search window
 	rSearchWindowSm = 5; // size of search window
 	searchRoundLg = 1;
 	searchRoundSm = 1;
@@ -45,6 +45,7 @@ CompressiveTracker::CompressiveTracker(void)
 	mu.resize(featureNum, 0);
 	sigma.resize(featureNum, 0);
 	learnRate = 0.85f;	// Learning rate parameter
+	lastConfid = 1.0;
 	// hyperparameter for orf
 	hp.counterThreshold = 70;
 	hp.maxDepth = 30;
@@ -77,6 +78,7 @@ void CompressiveTracker::SplitBox(Rect _objectBox, vector<Rect>& splitBox){
 				_objectBox.y + height_sm*(1 - overlap)*j, width_sm, height_sm);
 		}
 	}
+	// splitBox[split_hrzt*split_vrtc - 1] = _objectBox;
 }
 
 void CompressiveTracker::HaarFeature(int _numFeature)
@@ -258,7 +260,7 @@ void CompressiveTracker::sampleRect(Mat& _image, Rect& _objectBox, float _srw, v
 				rec.height = _objectBox.height;
 
 				_sampleBox.push_back(rec);
-				_prior.push_back(exp(-dist * 1.0 / 22500));
+				_prior.push_back(exp(-dist * 1.0 / 8100));
 				i++;
 			}
 		}
@@ -315,6 +317,9 @@ void CompressiveTracker::getFeatureValue(Mat& _imageIntegral, vector<Rect>& _sam
 	int yMin;
 	int yMax;
 
+	for (int i = 0; i<featureNum; i++)
+	{
+		for (int j = 0; j<sampleBoxSize; j++)
 	for (int i=0; i<featureNum; i++)
 	{
 		for (int j=0; j<sampleBoxSize; j++)
@@ -341,6 +346,11 @@ void CompressiveTracker::getFeatureValue(Mat& _imageIntegral, vector<Rect>& _sam
 			_sampleFeatureValue.at<float>(i,j) = tempValue;
 		}
 	}
+	//for (int j = 0; j < _sampleFeatureValue.cols; j++){
+	//	Mat col;
+	//	col = _sampleFeatureValue(Rect(j, 0, 1, _sampleFeatureValue.rows));
+	//	//normalize(col, col, 1, NORM_L2);
+	//}
 }
 
 void CompressiveTracker::insertORF(OnlineRF& orf, Mat& _sampleFeatureValue, int label, vector<Weight>& _sampleWeight)
@@ -447,8 +457,8 @@ void CompressiveTracker::siftSample(int splitIndex, Mat& sampleFeatureValue, vec
 				confid_other = max(confid_other, (float)result.confidence[j]);
 		}
 		if (splitIndex < split_hrzt*split_vrtc &&
-			confid_bg > thrsdBG * confid_fg &&
-			ratioUncertain*confid_bg > thrsdUncertain*result.confidence[split_hrzt*split_vrtc + 1])
+			confid_bg > thrsdBG * confid_fg )
+			//ratioUncertain*confid_bg > thrsdUncertain*result.confidence[split_hrzt*split_vrtc + 1])
 		{
 			// pick out false positive samples
 			// sampleNegativeBox.push_back(samplePositiveBox[i]);
@@ -572,7 +582,7 @@ void CompressiveTracker::detect(Mat& _frame, Mat& _image_rgb, Mat& imageIntegral
 	for (int i = 0; i < searchRoundLg; i++){
 		Rect boxOld, boxNew = _objectBox;
 		float confidTemp = 0;
-		searchRegion(_frame, imageIntegral, rSearchWindowLg, probSearchLg, 1.0, 1.0, 1, boxNew, confidTemp);
+		searchRegion(_frame, imageIntegral,rSearchWindowLg, probSearchLg, 1.0, 1.0, 1, boxNew, confidTemp);
 		circle(_image_rgb, 0.5*boxNew.tl() + 0.5*boxNew.br(), rSearchWindowSm, Scalar(0, 255, 0));
 		searchRegion(_frame, imageIntegral, rSearchWindowSm, probSearchSm, scaleMin, scaleMax, scaleStepSm, boxNew, confidTemp);
 		/*for (int j = 0; j < searchRoundSm && boxOld!=boxNew; j++){
@@ -584,6 +594,7 @@ void CompressiveTracker::detect(Mat& _frame, Mat& _image_rgb, Mat& imageIntegral
 		confid.push_back(confidTemp);
 	}
 	_objectBox = candidates[argmax(confid)];
+	lastConfid = confid[argmax(confid)];
 
 }
 
@@ -621,8 +632,8 @@ void CompressiveTracker::init(Mat& _frame, Mat& _image_rgb, Rect& _objectBox)
 	Mat sampleNegativeFeatureValue;
 	initPositiveFeatureValues.resize(split_hrzt*split_vrtc);
 	sampleNeg(_frame, _objectBox,
-		max((int)(1.5 * rSearchWindowLg), (int)(ratioeMarginOut * splitBox[0].width)),
-		max((int)(1.5 * rSearchWindowLg), (int)(ratioeMarginOut * splitBox[0].height)),
+		max((int)(ratioeMarginOut * rSearchWindowLg), (int)(ratioeMarginOut * splitBox[0].width)),
+		max((int)(ratioeMarginOut * rSearchWindowLg), (int)(ratioeMarginOut * splitBox[0].height)),
 		(int)(ratioMarginIn * splitBox[0].width), (int)(ratioMarginIn * splitBox[0].height),
 		sampleNumNegInit, splitBox[0].width, splitBox[0].height, sampleNegativeBox);
 	getFeatureValue(imageIntegral, sampleNegativeBox, 1, sampleNegativeFeatureValue);
@@ -658,7 +669,7 @@ void CompressiveTracker::processFrame(Mat& _frame, Mat& _image_rgb, Rect& _objec
 	double tc = getTickCount();
 	double tc6 = getTickCount();
 	double freq = getTickFrequency();
-
+	
 	pos = Mat(_frame.size(), CV_8U, Scalar::all(0));
 	neg = Mat(_frame.size(), CV_8U, Scalar::all(0));
 	like = Mat(_frame.size(), CV_8U, Scalar::all(0));
@@ -692,28 +703,29 @@ void CompressiveTracker::processFrame(Mat& _frame, Mat& _image_rgb, Rect& _objec
 	Mat samplePositiveFeatureValue;
 	Mat sampleNegativeFeatureValue;
 	sampleNeg(_frame, _objectBox,
-		max((int)(1.5 * rSearchWindowLg), (int)(ratioeMarginOut * splitBox[0].width)),
-		max((int)(1.5 * rSearchWindowLg), (int)(ratioeMarginOut * splitBox[0].height)),
+		max((int)(ratioeMarginOut * rSearchWindowLg), (int)(ratioeMarginOut * splitBox[0].width)),
+		max((int)(ratioeMarginOut * rSearchWindowLg), (int)(ratioeMarginOut * splitBox[0].height)),
 		(int)(ratioMarginIn * splitBox[0].width), (int)(ratioMarginIn * splitBox[0].height),
 		sampleNumNeg, splitBox[0].width, splitBox[0].height, sampleNegativeBox);
 	sampleWeight.resize(sampleNegativeBox.size(), 1.0);
 	getFeatureValue(imageIntegral, sampleNegativeBox, 1, sampleNegativeFeatureValue);
-	//siftSample(split_hrzt*split_vrtc, sampleNegativeFeatureValue, sampleNegativeBox, sampleWeight);
-	//getFeatureValue(imageIntegral, sampleNegativeBox, 1, sampleNegativeFeatureValue);
+	siftSample(split_hrzt*split_vrtc, sampleNegativeFeatureValue, sampleNegativeBox, sampleWeight);
+	getFeatureValue(imageIntegral, sampleNegativeBox, 1, sampleNegativeFeatureValue);
 	//orf.update();
 	//orfOrigin.init(hpOrigin, classNum);
 	for (int i = 0; i < split_hrzt*split_vrtc; i++){
 		tc = getTickCount();
 		sampleRect(_frame, splitBox[i], _objectBox, rOuterPositive, 0.0, sampleNumPos, false, samplePositiveBox, sampleWeight);
 		getFeatureValue(imageIntegral, samplePositiveBox, 1, samplePositiveFeatureValue);
-		//siftSample(i, samplePositiveFeatureValue, samplePositiveBox, sampleWeight);
-		//getFeatureValue(imageIntegral, samplePositiveBox, 1, samplePositiveFeatureValue);
+		siftSample(i, samplePositiveFeatureValue, samplePositiveBox, sampleWeight);
+		getFeatureValue(imageIntegral, samplePositiveBox, 1, samplePositiveFeatureValue);
 		//cout << "samples of patch "<< i << ": "<< samplePositiveBox.size() << " " << sampleNegativeBox.size() << endl;
 		t3 += (getTickCount() - tc) / freq;
 
 		tc = getTickCount();
 		insertORF(orf, samplePositiveFeatureValue, i, sampleWeight);
-		//insertORF(orfOrigin, initPositiveFeatureValues[i], i, sampleWeight);
+		//if (lastConfid >= 0.5)
+		//	insertORF(orfOrigin, initPositiveFeatureValues[i], i, sampleWeight);
 		t4 += (getTickCount() - tc) / freq;
 
 		rectangle(_frame, splitBox[i], splitConfid[i] * 255);
@@ -733,7 +745,8 @@ void CompressiveTracker::processFrame(Mat& _frame, Mat& _image_rgb, Rect& _objec
 	cout << "insert uses " << t4 << "seconds" << endl;
 	cout << "update uses " << t5 << "seconds" << endl;
 	cout << "in all uses " << t6 << "seconds" << endl;
-
+	//if (lastConfid>0.5)
+	//	cout << "orfOrigin updated" << endl;
 	//rectangle(neg, _objectBox, 32);
 	//imshow("neg", neg);
 	imshow("confid",confid);

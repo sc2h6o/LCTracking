@@ -38,85 +38,40 @@ public:
         }
     }
 
-    double score() {
-   //     double totalCount = m_trueCount + m_falseCount;
-
-   //     // Split Entropy
-   //     double p, splitEntropy = 0.0;
-   //     if (m_trueCount) {
-   //         p = m_trueCount / totalCount;
-   //         splitEntropy -= p * log2(p);
-   //     }
-   //     if (m_falseCount) {
-			//p = m_falseCount / totalCount;
-   //         splitEntropy -= p * log2(p);
-   //     }
-
-   //     // Prior Entropy
-   //     double priorEntropy = 0.0;
-   //     for (int i = 0; i < m_numClasses; i++) {
-   //         p = (m_trueStats[i] + m_falseStats[i]) / totalCount;
-   //         if (p) {
-   //             priorEntropy -= p * log2(p);
-   //         }
-   //     }
-
-   //     // Posterior Entropy
-   //     double trueScore = 0.0, falseScore = 0.0;
-   //     if (m_trueCount) {
-   //         for (int i = 0; i < m_numClasses; i++) {
-   //             p = m_trueStats[i] / m_trueCount;
-   //             if (p) {
-   //                 trueScore -= p * log2(p);
-   //             }
-   //         }
-   //     }
-   //     if (m_falseCount) {
-   //         for (int i = 0; i < m_numClasses; i++) {
-   //             p = m_falseStats[i] / m_falseCount;
-   //             if (p) {
-   //                 falseScore -= p * log2(p);
-   //             }
-   //         }
-   //     }
-   //     double posteriorEntropy = (m_trueCount * trueScore + m_falseCount * falseScore) / totalCount;
-
-   //     // Information Gain
-   //     return (priorEntropy - posteriorEntropy);
+	double score(const vector<double> &c) {
 
 		double totalCount = m_trueCount + m_falseCount;
-		double p= 0.0;
-		double ksi = 0;
-		// Prior Entropy
-		double priorEntropy = 0.0;
-		double priorConfid = 1.0;
+		double p = 0.0;
+		vector<double> pBag;
+		pBag = c;
+		// Prior Score
 		for (int i = 0; i < m_numClasses; i++) {
 			p = (m_trueStats[i] + m_falseStats[i]) / totalCount;
 			if (p && i == m_negClass) {
-				priorEntropy -= p * totalCount * log2(p);
-				//priorEntropy += p * totalCount * log2(1 + ksi - p);
+				pBag[i] *= pow(p, (int)(p * totalCount));
 			}
-			else if(p) {
-				priorEntropy -= p * totalCount * log2(p);
-				priorConfid *= pow(1 - p, p * totalCount);
+			else if(p && i < m_negClass) {
+				pBag[i] *= pow(1 - p, (int)(p * totalCount));
 			}
-			
+		}
+		double priorScore = 1;
+		for (int i = 0; i < pBag.size(); i++){
+			if (i == m_negClass)
+				priorScore *= pBag[i];
+			else
+				priorScore *= 1 - pBag[i];
 		}
 
 		// Posterior Entropy
-		double trueScore = 0.0, falseScore = 0.0;
-		double trueConfid = 1.0, falseConfid = 1.0;
+		pBag = c;
 		if (m_trueCount) {
 			for (int i = 0; i < m_numClasses; i++) {
 				p = m_trueStats[i] / m_trueCount;
 				if (p && i == m_negClass) {
-					trueScore -= p * m_trueCount * log2(p);
-					//trueScore += p * m_trueCount * log2(1 + ksi - p);
+					pBag[i] *= pow(p, (int)(p * m_trueCount));
 				}
 				else if (p) {
-					trueScore -= p * m_trueCount * log2(p);
-					trueConfid *= pow(1 - p, p * m_trueCount);
-					//trueScore += p * m_trueCount * log2(1 + ksi - p);
+					pBag[i] *= pow(1 - p, (int)(p * m_trueCount));
 				}
 			}
 		}
@@ -124,19 +79,23 @@ public:
 			for (int i = 0; i < m_numClasses; i++) {
 				p = m_falseStats[i] / m_falseCount;
 				if (p && i == m_negClass) {
-					falseScore -= p * m_falseCount * log2(p);
-					//falseScqore += p * m_falseCount * log2(1 + ksi - p);
+					pBag[i] *= pow(p, (int)(p * m_falseCount));
 				}
 				else if (p) {
-					falseScore -= p * m_falseCount * log2(p);
-					falseConfid *= pow(1 - p, p * m_falseCount);
-					//falseScore += p * m_falseCount * log2(1 + ksi - p);
+					pBag[i] *= pow(1 - p, (int)(p * m_falseCount));
 				}
 			}
 		}
+		double posterScore = 1;
+		for (int i = 0; i < pBag.size(); i++){
+			if (i == m_negClass)
+				posterScore *= pBag[i];
+			else
+				posterScore *= 1 - pBag[i];
+		}
 
 		// Information Gain
-		return (priorEntropy - trueScore - falseScore - ksi * trueConfid * falseConfid);
+		return (posterScore - priorScore);
     }
 
     /*pair<vector<double> , vector<double> > getStats() {

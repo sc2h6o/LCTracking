@@ -198,3 +198,4 @@ FakesAssemblies/
 
 /CompressiveTracking/img
 **/*.avi
+result/**
